@@ -33,7 +33,7 @@ if Instrument == "NetR9":
 	Network_NetR9 = Network.loc[Network.Model=='Trimble NetR9',['Hostname','Code']]
 	NetR9_Final = pd.merge(Installed_NetR9, Network_NetR9, how='outer', left_on=['Mark'], right_on=['Code'])
 
-    #Print Newtwork localities that do not have a match in Delta.	
+    #Print Network localities that do not have a match in Delta.
 
 	nan_rows = NetR9_Final[NetR9_Final['Serial'].isnull()]
 	print("\nThe following Network repo entries are not listed in the Delta repo\n", nan_rows['Hostname'])
