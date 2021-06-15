@@ -10,7 +10,7 @@ import numpy as np
 from scipy import signal
 
 def get_and_remove_response(station, channel, location, output, t1, duration):
-    client = Client("http://service-nrt.geonet.org.nz")
+    client = Client("http://service.geonet.org.nz")
     st = client.get_waveforms(
         network="NZ", station=station, location=location,
         channel=channel, starttime=t1, endtime=t1 + duration)
@@ -74,49 +74,63 @@ def check_length(stream):
     return stream
 
 
-t1 = UTCDateTime(2021, 5, 13, 23, 59, 59)
-duration = 1.1*24*60*60
+t1 = UTCDateTime(2021, 5, 31, 23, 58, 59)
+duration = 3.2*60*60
 
-st = get_and_remove_response(station='WEL', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
-stime = UTCDateTime("2021-05-14T00:00:00")
-st = st.trim(starttime=stime, endtime=stime + 24*60*60)
+st = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+stime = UTCDateTime("2021-06-01T00:00:00")
+st = st.trim(starttime=stime, endtime=stime + 3*60*60)
 
-st = check_length(st)
 
-st_local = read("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NIC_centaur-6_7978_20210514_000000.seed")
-st_local = check_length(st_local)
+rt = get_and_remove_response(station='MWZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+rt = rt.trim(starttime=stime, endtime=stime + 3*60*60)
 
-for n in range(len(st_local)):
-	# st_local[n].detrend('linear')
-	# st_local[n].taper(max_percentage=0.05, type='cosine')
-	st_local[n].filter('bandpass', freqmin=0.1, freqmax=0.2, zerophase=True)
 
-tr_z = st_local.select(id="NZ.NIC.10.HHZ")
-inv_z = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HHZ.xml")
-print(inv_z)
-tr_z.remove_response(inventory=inv_z, pre_filt=False, output='VEL', water_level=60, plot=False)
 
-tr_1 = st_local.select(id="NZ.NIC.10.HH1")
-inv_1 = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HH1.xml")
-tr_1.remove_response(inventory=inv_1, pre_filt=False, output='VEL', water_level=60, plot=False)
+# st_local = read("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NIC_centaur-6_7978_20210514_000000.seed")
+# st_local = check_length(st_local)
 
-tr_2 = st_local.select(id="NZ.NIC.10.HH2")
-inv_2 = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HH2.xml")
-tr_2.remove_response(inventory=inv_2, pre_filt=False, output='VEL', water_level=60, plot=False)
+# for n in range(len(st_local)):
+# 	# st_local[n].detrend('linear')
+# 	# st_local[n].taper(max_percentage=0.05, type='cosine')
+# 	st_local[n].filter('bandpass', freqmin=0.1, freqmax=0.2, zerophase=True)
 
-rt = Stream()
+# tr_z = st_local.select(id="NZ.NIC.10.HHZ")
+# inv_z = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HHZ.xml")
+# print(inv_z)
+# tr_z.remove_response(inventory=inv_z, pre_filt=False, output='VEL', water_level=60, plot=False)
 
-rt += tr_2 + tr_1 + tr_z
+# tr_1 = st_local.select(id="NZ.NIC.10.HH1")
+# inv_1 = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HH1.xml")
+# tr_1.remove_response(inventory=inv_1, pre_filt=False, output='VEL', water_level=60, plot=False)
+
+# tr_2 = st_local.select(id="NZ.NIC.10.HH2")
+# inv_2 = read_inventory("/home/conradb/seis_tools/orientation/NIC_T120_BH-1/NZ.NIC.10.xml/NZ.NIC.10.HH2.xml")
+# tr_2.remove_response(inventory=inv_2, pre_filt=False, output='VEL', water_level=60, plot=False)
+
+# rt = Stream()
+
+# rt += tr_2 + tr_1 + tr_z
+
+
 
 st.sort()
-# rt.sort()
+rt.sort()
 
 # stime = UTCDateTime("2021-05-14T00:00:00")
+
+ 
+
 st_trim = st
 rt_trim = rt
 
 print(st_trim)
 print(rt_trim)
+
+# for i in range(len(st)):
+#     st_trim += np.delete(st[i], 0)
+# print(len(st_trim))
+
 
 
 # stime2 = UTCDateTime("2021-05-11T14:52:30")
@@ -172,12 +186,15 @@ print(rt_trim)
 
  # a = []
 
+rt_trim = np.delete(rt_trim, 0, 1)
+st_trim = np.delete(st_trim, 0, 1)
+
 for n in range(len(rt_trim)):
 
 
-	rt_split_2 = np.hsplit(rt_trim[0].data, 144)
-	rt_split_1 = np.hsplit(rt_trim[1].data, 144)
-	rt_split_z = np.hsplit(rt_trim[2].data, 144)
+	rt_split_2 = np.hsplit(rt_trim[0].data, 6)
+	rt_split_1 = np.hsplit(rt_trim[1].data, 6)
+	rt_split_z = np.hsplit(rt_trim[2].data, 6)
 	print(rt_split_z)
 	signal.detrend(rt_split_z,type='linear')
 	# window = signal.windows.tukey(len(rt_split_z),alpha=0.05)
@@ -190,9 +207,9 @@ print(rt_split_z[0])
 
 for x in range(len(st_trim)):
 
-	st_split_e = np.hsplit(st_trim[0].data, 144)
-	st_split_n = np.hsplit(st_trim[1].data, 144)
-	st_split_z = np.hsplit(st_trim[2].data, 144)
+	st_split_e = np.hsplit(st_trim[0].data, 6)
+	st_split_n = np.hsplit(st_trim[1].data, 6)
+	st_split_z = np.hsplit(st_trim[2].data, 6)
 	signal.detrend(st_split_z,type='linear')
 	# window = signal.windows.tukey(len(st_split[x]),alpha=0.05)
 	# st_split[x] * window
