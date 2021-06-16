@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
 from obspy import UTCDateTime
 from obspy import Stream
+from obspy import Trace
 from obspy import read, read_inventory
 from obspy.clients.fdsn import Client
 from obspy.signal.cross_correlation import correlate
@@ -75,15 +77,15 @@ def check_length(stream):
 
 
 t1 = UTCDateTime(2021, 5, 31, 23, 58, 59)
-duration = 3.2*60*60
+duration = 2*48.2*60*60
 
 st = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
 stime = UTCDateTime("2021-06-01T00:00:00")
-st = st.trim(starttime=stime, endtime=stime + 3*60*60)
+st = st.trim(starttime=stime, endtime=stime + 2*48*60*60)
 
 
-rt = get_and_remove_response(station='MWZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
-rt = rt.trim(starttime=stime, endtime=stime + 3*60*60)
+rt = get_and_remove_response(station='PUZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+rt = rt.trim(starttime=stime, endtime=stime + 2*48*60*60)
 
 
 
@@ -186,49 +188,130 @@ print(rt_trim)
 
  # a = []
 
-rt_trim = np.delete(rt_trim, 0, 1)
-st_trim = np.delete(st_trim, 0, 1)
+st_1 = st_trim.select(id="NZ.URZ.10.HH1")
+st_1 = np.delete(st_1, 0, 1)
+st_2 = st_trim.select(id="NZ.URZ.10.HH2")
+st_2 = np.delete(st_2, 0, 1)
+st_z = st_trim.select(id="NZ.URZ.10.HHZ")
+st_z = np.delete(st_z, 0, 1)
 
-for n in range(len(rt_trim)):
+rt_n = rt_trim.select(id="NZ.PUZ.10.HHN")
+rt_n = np.delete(rt_n, 0, 1)
+rt_e = rt_trim.select(id="NZ.PUZ.10.HHE")
+rt_e = np.delete(rt_e, 0, 1)
+rt_z = rt_trim.select(id="NZ.PUZ.10.HHZ")
+rt_z = np.delete(rt_z, 0, 1)
 
+# rt_trim = np.delete(rt_trim, 0, 1)
+# st_trim = np.delete(st_trim, 0, 1)
 
-	rt_split_2 = np.hsplit(rt_trim[0].data, 6)
-	rt_split_1 = np.hsplit(rt_trim[1].data, 6)
-	rt_split_z = np.hsplit(rt_trim[2].data, 6)
-	print(rt_split_z)
-	signal.detrend(rt_split_z,type='linear')
-	# window = signal.windows.tukey(len(rt_split_z),alpha=0.05)
-	# rt_split_z[n] * window
-	# plt.plot(rt_split[2])
-	# plt.plot(rt_split[1])
-	# plt.plot(rt_split[2])
-	print("%s break")
+rt_split_e = np.hsplit(rt_e[0].data, 2*96)
+rt_split_n = np.hsplit(rt_n[0].data, 2*96)
+rt_split_z = np.hsplit(rt_z[0].data, 2*96)
+
+st_split_2 = np.hsplit(st_2[0].data, 2*96)
+st_split_1 = np.hsplit(st_1[0].data, 2*96)
+st_split_z = np.hsplit(st_z[0].data, 2*96)
+
+print(range(len(rt_split_z)))
+
+for n in range(len(rt_split_z)):
+
+    signal.detrend(rt_split_z[n],type='linear')
+    window = signal.tukey(len(rt_split_z[n]),alpha=0.05)
+    rt_split_z[n] * window
+    signal.detrend(rt_split_n[n],type='linear')
+    window = signal.tukey(len(rt_split_n[n]),alpha=0.05)
+    rt_split_n[n] * window
+    signal.detrend(rt_split_e[n],type='linear')
+    window = signal.tukey(len(rt_split_e[n]),alpha=0.05)
+    rt_split_e[n] * window
+
+print("%s break")
 print(rt_split_z[0])
 
-for x in range(len(st_trim)):
+for x in range(len(st_split_z)):
 
-	st_split_e = np.hsplit(st_trim[0].data, 6)
-	st_split_n = np.hsplit(st_trim[1].data, 6)
-	st_split_z = np.hsplit(st_trim[2].data, 6)
-	signal.detrend(st_split_z,type='linear')
-	# window = signal.windows.tukey(len(st_split[x]),alpha=0.05)
-	# st_split[x] * window
-	# plt.plot(st_split[2])
-	# plt.plot(rt_split[1])
-	# plt.plot(rt_split[2])
-	# print(st_split[2])
+    signal.detrend(st_split_z[x],type='linear')
+    window = signal.tukey(len(st_split_z[x]),alpha=0.05)
+    st_split_z[x] * window
+    signal.detrend(st_split_1[x],type='linear')
+    window = signal.tukey(len(st_split_1[x]),alpha=0.05)
+    st_split_1[x] * window
+    signal.detrend(st_split_2[x],type='linear')
+    window = signal.tukey(len(st_split_2[x]),alpha=0.05)
+    st_split_2[x] * window
 
-print(st_split_z[0])	
+print(st_split_z[0])
+print(range(len(st_split_z)))
 
+z_ccf_windows = []
+n_ccf_windows = []
+e_ccf_windows = []
 for i in range(len(st_split_z)):
-	z_corr = correlate(st_split_z[i],rt_split_z[i],120*100)
-	print(z_corr)
-	z_stacked = z_corr
-	z_stacked += z_corr[i]
-print(z_stacked)
+    z_corr = correlate(st_split_z[i],rt_split_z[i],120*100)
+    n_corr = correlate(st_split_1[i],rt_split_z[i],120*100)
+    e_corr = correlate(st_split_2[i],rt_split_z[i],120*100)
+    print("%s zcorr break")
+    print(z_corr)
+    z_ccf_windows.append(z_corr)
+    n_ccf_windows.append(n_corr)
+    e_ccf_windows.append(e_corr)
+    # for a in range(len(z_corr)):
+    #     z_stacked = np.add(z_corr[a],z_corr[a+1]) 
+    #     z_stacked / len(st_split_z)
+    #     # Czz.append(z_stacked)
+print("%s z stacked break")
+print(z_ccf_windows)
+
+
+
+zz = np.array(z_ccf_windows, dtype=np.float32)
+nz = np.array(n_ccf_windows, dtype=np.float32)
+ez = np.array(e_ccf_windows, dtype=np.float32)
+z_stacked = zz.sum(axis=0) / len(zz)
+n_stacked = nz.sum(axis=0) / len(nz)
+e_stacked = ez.sum(axis=0) / len(ez)
+
+
+print(len(zz))
+print(range(len(zz)))
 
 plt.plot(z_stacked)
 plt.show()
+
+print(len(z_stacked))
+print(range(len(z_stacked)))
+
+
+
+
+# Convert to NumPy character array
+# data = np.array(z_stacked, dtype='|S1')
+
+# Fill header attributes
+stats = {'network': 'NZ', 'station': 'URZ', 'location': '10',
+         'channel': 'HHZ', 'npts': len(z_stacked), 'sampling_rate': 100,
+         'mseed': {'dataquality': 'D'}}
+stats2 = {'network': 'NZ', 'station': 'URZ', 'location': '10',
+         'channel': 'HH1', 'npts': len(z_stacked), 'sampling_rate': 100,
+         'mseed': {'dataquality': 'D'}}
+stats3 = {'network': 'NZ', 'station': 'URZ', 'location': '10',
+         'channel': 'HH2', 'npts': len(z_stacked), 'sampling_rate': 100,
+         'mseed': {'dataquality': 'D'}}
+# set current time
+stats['starttime'] = UTCDateTime("2021-06-01T00:00:00")
+stats2['starttime'] = UTCDateTime("2021-06-01T00:00:00")
+stats3['starttime'] = UTCDateTime("2021-06-01T00:00:00")
+st = Stream([Trace(data=z_stacked, header=stats)])
+st2 = Stream([Trace(data=n_stacked, header=stats2)])
+st3 = Stream([Trace(data=e_stacked, header=stats3)])
+# write as ASCII file (encoding=0)
+st.write("URZ_PUZ_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+st2.write("URZ_PUZ_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+st3.write("URZ_PUZ_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+
+
 
 
 
