@@ -76,15 +76,15 @@ def check_length(stream):
     return stream
 
 
-t1 = UTCDateTime(2021, 5, 31, 23, 58, 59)
+t1 = UTCDateTime(2021, 6, 5, 23, 58, 59)
 duration = 2*48.2*60*60
 
 st = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
-stime = UTCDateTime("2021-06-01T00:00:00")
+stime = UTCDateTime("2021-06-06T00:00:00")
 st = st.trim(starttime=stime, endtime=stime + 2*48*60*60)
 
 
-rt = get_and_remove_response(station='PUZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+rt = get_and_remove_response(station='WIZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
 rt = rt.trim(starttime=stime, endtime=stime + 2*48*60*60)
 
 
@@ -195,11 +195,11 @@ st_2 = np.delete(st_2, 0, 1)
 st_z = st_trim.select(id="NZ.URZ.10.HHZ")
 st_z = np.delete(st_z, 0, 1)
 
-rt_n = rt_trim.select(id="NZ.PUZ.10.HHN")
+rt_n = rt_trim.select(id="NZ.WIZ.10.HHN")
 rt_n = np.delete(rt_n, 0, 1)
-rt_e = rt_trim.select(id="NZ.PUZ.10.HHE")
+rt_e = rt_trim.select(id="NZ.WIZ.10.HHE")
 rt_e = np.delete(rt_e, 0, 1)
-rt_z = rt_trim.select(id="NZ.PUZ.10.HHZ")
+rt_z = rt_trim.select(id="NZ.WIZ.10.HHZ")
 rt_z = np.delete(rt_z, 0, 1)
 
 # rt_trim = np.delete(rt_trim, 0, 1)
@@ -307,9 +307,9 @@ st = Stream([Trace(data=z_stacked, header=stats)])
 st2 = Stream([Trace(data=n_stacked, header=stats2)])
 st3 = Stream([Trace(data=e_stacked, header=stats3)])
 # write as ASCII file (encoding=0)
-st.write("URZ_PUZ_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-st2.write("URZ_PUZ_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-st3.write("URZ_PUZ_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+st.write("URZ_WIZ_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+st2.write("URZ_WIZ_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+st3.write("URZ_WIZ_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
 
 
 
