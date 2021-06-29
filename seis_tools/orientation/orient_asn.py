@@ -34,14 +34,14 @@ def fold_ccfs(zz,nz,ez):
 
 	# Order ccf streams
 	st_folded.sort() 
-	ZZ = st_folded.select(id="NZ.URZ.10.HHZ")
-	RZ = st_folded.select(id="NZ.URZ.10.HH1")
-	TZ = st_folded.select(id="NZ.URZ.10.HH2")
+	ZZ = st_folded.select(id="NZ.RPZ.10.HHZ")
+	RZ = st_folded.select(id="NZ.RPZ.10.HH1")
+	TZ = st_folded.select(id="NZ.RPZ.10.HH2")
 
 	return ZZ,RZ,TZ
 
 	
-ZZ,RZ,TZ = fold_ccfs(zz='URZ_WIZ_ZZ.mseed',nz='URZ_WIZ_1Z.mseed',ez='URZ_WIZ_2Z.mseed')
+ZZ,RZ,TZ = fold_ccfs(zz='RPZ_WVZ_ZZ.mseed',nz='RPZ_WVZ_1Z.mseed',ez='RPZ_WVZ_2Z.mseed')
 
 print(ZZ)
 
@@ -50,7 +50,7 @@ print(ZZ)
 # axs[1].plot(RZ[0].data)
 # axs[2].plot(TZ[0].data)
 
-# st2 = read('URZ_WIZ_ZZ.mseed')
+# st2 = read('RPZ_WVZ_ZZ.mseed')
 # plt.plot(st2[0].data)
 # plt.show()
 
@@ -62,7 +62,7 @@ print(ZZ)
 ZZ_hil = np.imag(hilbert(ZZ[0].data))
 Szz = np.correlate(ZZ_hil,ZZ_hil)
 
-# rotating ANT-CLOCKWISE, correlating with ZZ_hil:
+# rotating ANTI-CLOCKWISE, correlating with ZZ_hil:
 maxSrz= []
 #coherences=[]
 thetas = np.linspace(0,2*np.pi,360)
@@ -70,7 +70,7 @@ for i_,theta in enumerate(thetas):
 	RZ_rot =  np.cos(theta)*RZ[0].data - np.sin(theta)*TZ[0].data
 	TZ_rot = np.sin(theta)*RZ[0].data + np.cos(theta)*TZ[0].data
 	Srz = np.correlate(RZ_rot, ZZ_hil)
-	Szz = np.correlate(ZZ_hil, ZZ_hil)
+	# Szz = np.correlate(ZZ_hil, ZZ_hil)
 	maxSrz.append(max(Srz)/max(Szz))
 
 # find the angle with the maximum correlation:
@@ -83,18 +83,19 @@ print(degrees)
 print(corr_coeff)
 
 
-URZ_lat = -38.2592
-URZ_long = 177.1109
-WIZ_lat = -37.5265
-WIZ_long = 177.1894
+RPZ_lat = -43.7146
+RPZ_long = 171.0539
+WVZ_lat = -43.0743
+WVZ_long = 170.7368
 
-back_azi = gps2dist_azimuth(URZ_lat, URZ_long, WIZ_lat, WIZ_long)
-source_back_azi = back_azi[1]
+back_azi = gps2dist_azimuth(RPZ_lat, RPZ_long, WVZ_lat, WVZ_long)
+print(back_azi)
+source_azi = back_azi[1]
 
-print(source_back_azi)
+print(source_azi)
 
 #anti-clockwise-hh1-rot
-correction = ((source_back_azi + degrees) + 360) % 360
+correction = ((source_azi + degrees) + 360) % 360
 print(correction)
 
 # plt.plot(maxSrz)
@@ -129,9 +130,9 @@ m = Basemap(llcrnrlon=170.,llcrnrlat=-40.,urcrnrlon=180.,urcrnrlat=-35.,\
             lat_0=-37.5,lon_0=175.,lat_ts=None)
 
 # nylat, nylon are lat/lon of New York
-nylat = URZ_lat; nylon = URZ_long
+nylat = RPZ_lat; nylon = RPZ_long
 # lonlat, lonlon are lat/lon of London.
-lonlat = WIZ_lat; lonlon = WIZ_long
+lonlat = WVZ_lat; lonlon = WVZ_long
 # draw great circle route between NY and London
 m.drawgreatcircle(nylon,nylat,lonlon,lonlat,linewidth=2,color='b')
 m.drawcoastlines()
@@ -140,7 +141,7 @@ m.fillcontinents()
 m.drawparallels(np.arange(-40,-35,1),labels=[1,1,0,1])
 # draw meridians
 m.drawmeridians(np.arange(-180,180,2.5),labels=[1,1,0,1])
-ax1.set_title('URZ to WIZ', pad=10)
+ax1.set_title('RPZ to WVZ', pad=10)
 
 
 
@@ -150,7 +151,7 @@ ax1.set_title('URZ to WIZ', pad=10)
 ax2 = fig.add_subplot(2, 2, 3, projection='polar')
 
 r = [1, 1,]
-theta = [np.radians(correction), np.radians(source_back_azi)]
+theta = [np.radians(correction), np.radians(source_azi)]
 labels = ['HH1','Station Source']
 
 
@@ -175,18 +176,18 @@ for curve in [[[0, correction], [0.4, 0.4]]]:
     y = interp1d( curve[0], curve[1])( x)
     ax2.plot(x, y, linewidth=2, label='Orientation'+ ' = ' + str(np.around(correction,0)))
 
-for curve in [[[source_back_azi,correction], [0.6, 0.6]]]:
+for curve in [[[source_azi,correction], [0.6, 0.6]]]:
 	# ax2.set_theta_direction(1)
 	curve[0] = np.deg2rad(curve[0])
 	x = np.linspace( curve[0][0], curve[0][1], 500)
 	y = interp1d( curve[0], curve[1])( x)
 	ax2.plot(x, y, linewidth=2, label='BAZ measured'+ ' = ' + str(np.round(degrees,0)))
 
-for curve in [[[0, source_back_azi], [0.8, 0.8]]]:
+for curve in [[[0, source_azi], [0.8, 0.8]]]:
     curve[0] = np.deg2rad(curve[0])
     x = np.linspace( curve[0][0], curve[0][1], 500)
     y = interp1d( curve[0], curve[1])( x)
-    ax2.plot(x, y, linewidth=2, label='BAZ expected'+ ' = ' + str(np.round(source_back_azi,0)))
+    ax2.plot(x, y, linewidth=2, label='BAZ expected'+ ' = ' + str(np.round(source_azi,0)))
 
 angle = np.deg2rad(337.5)
 ax2.legend(loc='upper left', bbox_to_anchor=(.5 + np.cos(angle)/2, .5 + np.sin(angle)/2))
@@ -227,5 +228,5 @@ ax6.set_ylabel('Srz')
 
 # fig.tight_layout()
 plt.show()
-# plt.savefig('T120-BH1_orient_URZ_WIZ.png', format='PNG', dpi=400)
+# plt.savefig('T120-BH1_orient_RPZ_WVZ.png', format='PNG', dpi=400)
 
