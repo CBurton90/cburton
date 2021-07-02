@@ -7,12 +7,14 @@ from obspy import Trace
 from obspy import read, read_inventory
 from obspy.clients.fdsn import Client
 from obspy.signal.cross_correlation import correlate
+from multiprocessing import Pool, cpu_count
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
+from timeit import default_timer as timer
 
 def get_and_remove_response(station, channel, location, output, t1, duration):
-    client = Client("http://service-nrt.geonet.org.nz")
+    client = Client("http://service.geonet.org.nz")
     st = client.get_waveforms(
         network="NZ", station=station, location=location,
         channel=channel, starttime=t1, endtime=t1 + duration)
@@ -40,6 +42,10 @@ def equal_and_split(st, id, stacks):
 	rec_st = np.hsplit(st[0].data, stacks)
 
 	return rec_st
+
+def multi_run_wrapper(args):
+   return get_and_remove_response(*args)
+
 
 def get_windows(n, Mt, olap):
     # Split a signal of length n into olap% overlapping windows each containing Mt terms 
@@ -83,20 +89,59 @@ def check_length(stream):
     return stream
 
 
-t1 = UTCDateTime(2021, 6, 24, 6, 30, 0)
-# duration = 2*48.2*60*60
+start = timer()
+
+
+t1 = UTCDateTime(2021, 5, 29, 6, 30, 0)
+duration = 4*24*60*60
+time = 15.5*24*60*60
+
+# duration = 4.3*24*60*60
 # time = 4*24*60*60
 
-duration = 4.3*24*60*60
-time = 4*24*60*60
+stime = UTCDateTime("2021-05-29T06:45:00")
 
-stime = UTCDateTime("2021-06-24T07:00:00")
+shift = 120
 
-rst = get_and_remove_response(station='RPZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+print(cpu_count())
+
+if __name__ == "__main__":
+    pool = Pool(cpu_count())
+    rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
+        ('URZ', 'HH*', '10', 'VEL', t1, duration),
+        ('PUZ', 'HH*', '10', 'VEL', t1, duration),
+        ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+        ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+        ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+        ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+        ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+        ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
+    
+    
+
+# if __name__ == "__main__":
+#     pool = Pool(cpu_count())
+#     rst2,sst2 = pool.map(multi_run_wrapper,[('URZ', 'HH*', '10', 'VEL', t1+24*60*60, duration),('PUZ', 'HH*', '10', 'VEL', t1+24*60*60, duration)])
+
+rst += rst2 +rst3 + rst4
+sst += sst2 +sst3 + sst4
+
+
+rst.merge(fill_value='interpolate')
+sst.merge(fill_value='interpolate')
+
+# rst = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+# sst = get_and_remove_response(station='PUZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+
+
 rst = rst.trim(starttime=stime, endtime=stime + time)
 
-sst = get_and_remove_response(station='WVZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+
 sst = sst.trim(starttime=stime, endtime=stime + time)
+
+station = rst[0].stats.station
+source = sst[0].stats.station
+loc = rst[0].stats.location
 
 sst.sort()
 rst.sort()
@@ -104,13 +149,13 @@ rst.sort()
 print(rst)
 print(sst)
 
-sou_st_e = equal_and_split(st=sst, id="NZ.WVZ.10.HHE", stacks=time/1800)
-sou_st_n = equal_and_split(st=sst, id="NZ.WVZ.10.HHN", stacks=time/1800)
-sou_st_z = equal_and_split(st=sst, id="NZ.WVZ.10.HHZ", stacks=time/1800)
+sou_st_e = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHE", stacks=time/1800)
+sou_st_n = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHN", stacks=time/1800)
+sou_st_z = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHZ", stacks=time/1800)
 
-rec_st_2 = equal_and_split(st=rst, id="NZ.RPZ.10.HH2", stacks=time/1800)
-rec_st_1 = equal_and_split(st=rst, id="NZ.RPZ.10.HH1", stacks=time/1800)
-rec_st_z = equal_and_split(st=rst, id="NZ.RPZ.10.HHZ", stacks=time/1800)
+rec_st_2 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH2", stacks=time/1800)
+rec_st_1 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH1", stacks=time/1800)
+rec_st_z = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HHZ", stacks=time/1800)
 
 
 
@@ -148,9 +193,9 @@ z_ccf_windows = []
 n_ccf_windows = []
 e_ccf_windows = []
 for i in range(len(rec_st_z)):
-    z_corr = correlate(rec_st_z[i],sou_st_z[i],150*100)
-    n_corr = correlate(rec_st_1[i],sou_st_z[i],150*100)
-    e_corr = correlate(rec_st_2[i],sou_st_z[i],150*100)
+    z_corr = correlate(rec_st_z[i],sou_st_z[i],shift*100)
+    n_corr = correlate(rec_st_1[i],sou_st_z[i],shift*100)
+    e_corr = correlate(rec_st_2[i],sou_st_z[i],shift*100)
     print("%s zcorr break")
     print(z_corr)
     z_ccf_windows.append(z_corr)
@@ -176,6 +221,9 @@ e_stacked = ez.sum(axis=0) / len(ez)
 print(len(zz))
 print(range(len(zz)))
 
+end = timer()
+print(end - start)
+
 plt.plot(z_stacked)
 plt.show()
 
@@ -185,30 +233,31 @@ print(range(len(z_stacked)))
 
 
 
-# Convert to NumPy character array
-data = np.array(z_stacked, dtype='|S1')
 
-# Fill header attributes
-stats = {'network': 'NZ', 'station': 'RPZ', 'location': '10',
-         'channel': 'HHZ', 'npts': len(z_stacked), 'sampling_rate': 100,
-         'mseed': {'dataquality': 'D'}}
-stats2 = {'network': 'NZ', 'station': 'RPZ', 'location': '10',
-         'channel': 'HH1', 'npts': len(z_stacked), 'sampling_rate': 100,
-         'mseed': {'dataquality': 'D'}}
-stats3 = {'network': 'NZ', 'station': 'RPZ', 'location': '10',
-         'channel': 'HH2', 'npts': len(z_stacked), 'sampling_rate': 100,
-         'mseed': {'dataquality': 'D'}}
-# set current time
-stats['starttime'] = UTCDateTime("2021-06-24T07:00:00")
-stats2['starttime'] = UTCDateTime("2021-06-24T07:00:00")
-stats3['starttime'] = UTCDateTime("2021-06-24T07:00:00")
-st = Stream([Trace(data=z_stacked, header=stats)])
-st2 = Stream([Trace(data=n_stacked, header=stats2)])
-st3 = Stream([Trace(data=e_stacked, header=stats3)])
-# write as ASCII file (encoding=0)
-st.write("RPZ_WVZ_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-st2.write("RPZ_WVZ_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-st3.write("RPZ_WVZ_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+# Convert to NumPy character array
+# data = np.array(z_stacked, dtype='|S1')
+
+# # Fill header attributes
+# stats = {'network': 'NZ', 'station': station, 'location': loc,
+#          'channel': 'HHZ', 'npts': len(z_stacked), 'sampling_rate': 100,
+#          'mseed': {'dataquality': 'D'}}
+# stats2 = {'network': 'NZ', 'station': station, 'location': loc,
+#          'channel': 'HH1', 'npts': len(z_stacked), 'sampling_rate': 100,
+#          'mseed': {'dataquality': 'D'}}
+# stats3 = {'network': 'NZ', 'station': station, 'location': loc,
+#          'channel': 'HH2', 'npts': len(z_stacked), 'sampling_rate': 100,
+#          'mseed': {'dataquality': 'D'}}
+# # set current time
+# stats['starttime'] = stime
+# stats2['starttime'] = stime
+# stats3['starttime'] = stime
+# st = Stream([Trace(data=z_stacked, header=stats)])
+# st2 = Stream([Trace(data=n_stacked, header=stats2)])
+# st3 = Stream([Trace(data=e_stacked, header=stats3)])
+# # write as ASCII file (encoding=0)
+# st.write(station+"_"+source+"_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+# st2.write(station+"_"+source+"_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+# st3.write(station+"_"+source+"_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
 
 
 
