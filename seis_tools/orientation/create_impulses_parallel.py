@@ -7,7 +7,8 @@ from obspy import Trace
 from obspy import read, read_inventory
 from obspy.clients.fdsn import Client
 from obspy.signal.cross_correlation import correlate
-from multiprocessing import Pool, cpu_count
+# from multiprocessing import Pool, cpu_count, get_context, set_start_method
+import multiprocessing
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
@@ -44,7 +45,7 @@ def equal_and_split(st, id, stacks):
 	return rec_st
 
 def multi_run_wrapper(args):
-   return get_and_remove_response(*args)
+    return get_and_remove_response(*args)
 
 
 def get_windows(n, Mt, olap):
@@ -89,6 +90,8 @@ def check_length(stream):
     return stream
 
 
+
+
 start = timer()
 
 
@@ -103,132 +106,211 @@ stime = UTCDateTime("2021-05-29T06:45:00")
 
 shift = 120
 
-print(cpu_count())
+# print(Pool(cpu_count())
+
+args_st = [('URZ', 'HH*', '10', 'VEL', t1, duration),
+('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
+
+args_rt = [('PUZ', 'HH*', '10', 'VEL', t1, duration),
+('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration), 
+('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
+
+args = [('URZ', 'HH*', '10', 'VEL', t1, duration),
+('PUZ', 'HH*', '10', 'VEL', t1, duration),
+('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
+
 
 if __name__ == "__main__":
-    pool = Pool(cpu_count())
-    rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
-        ('URZ', 'HH*', '10', 'VEL', t1, duration),
-        ('PUZ', 'HH*', '10', 'VEL', t1, duration),
-        ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-        ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-        ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-        ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-        ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-        ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
-    
-    
+    pool = multiprocessing.get_context('spawn').Pool(processes=2)
+    rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.starmap(get_and_remove_response, args)
+    pool.close()
 
 # if __name__ == "__main__":
 #     pool = Pool(cpu_count())
-#     rst2,sst2 = pool.map(multi_run_wrapper,[('URZ', 'HH*', '10', 'VEL', t1+24*60*60, duration),('PUZ', 'HH*', '10', 'VEL', t1+24*60*60, duration)])
+#     rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
+        # ('URZ', 'HH*', '10', 'VEL', t1, duration),
+        # ('PUZ', 'HH*', '10', 'VEL', t1, duration),
+        # ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+        # ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+        # ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+        # ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+        # ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+        # ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
 
-rst += rst2 +rst3 + rst4
-sst += sst2 +sst3 + sst4
 
 
-rst.merge(fill_value='interpolate')
-sst.merge(fill_value='interpolate')
+
+# set_start_method("spawn")
+# if __name__ == "__main__":
+
+#     pool = get_context('spawn').Pool(cpu_count())
+
+#     rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
+#         ('URZ', 'HH*', '10', 'VEL', t1, duration),
+#         ('PUZ', 'HH*', '10', 'VEL', t1, duration),
+#         ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+#         ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+#         ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+#         ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+#         ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+#         ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
+#     pool.close()
+#     pool.join()
+
+# pool = get_context('spawn').Pool(cpu_count())
+
+# rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
+#     ('URZ', 'HH*', '10', 'VEL', t1, duration),
+#     ('PUZ', 'HH*', '10', 'VEL', t1, duration),
+#     ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+#     ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+#     ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+#     ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+#     ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+#     ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
+# pool.close()
+# pool.join()
+
+
+
+
+# rst = Stream()
+
+# if __name__ == "__main__":
+#     pool = get_context('spawn').Pool()
+   
+#     for n in range(len(args_st)):
+#         rt = pool.apply_async(multi_run_wrapper, args_st[n])
+#         rst += rt[n]
+#         # rst += st
+
+#     sst = Stream()
+#     for n in range(len(args_rt)):
+#         stt = pool.apply_async(multi_run_wrapper, args_rt[n])
+#         # sst += rt[n]
+
+#     pool.close()
+#     pool.join()
+
+
+    
+    
+
+
+
+    rst += rst2 +rst3 + rst4
+    sst += sst2 +sst3 + sst4
+
+
+    rst.merge(fill_value='interpolate')
+    sst.merge(fill_value='interpolate')
 
 # rst = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
 # sst = get_and_remove_response(station='PUZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
 
 
-rst = rst.trim(starttime=stime, endtime=stime + time)
+    rst = rst.trim(starttime=stime, endtime=stime + time)
 
 
-sst = sst.trim(starttime=stime, endtime=stime + time)
+    sst = sst.trim(starttime=stime, endtime=stime + time)   
 
-station = rst[0].stats.station
-source = sst[0].stats.station
-loc = rst[0].stats.location
+    station = rst[0].stats.station
+    source = sst[0].stats.station
+    loc = rst[0].stats.location
 
-sst.sort()
-rst.sort()
+    sst.sort()
+    rst.sort()
 
-print(rst)
-print(sst)
+    print(rst)
+    print(sst)
 
-sou_st_e = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHE", stacks=time/1800)
-sou_st_n = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHN", stacks=time/1800)
-sou_st_z = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHZ", stacks=time/1800)
+    sou_st_e = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHE", stacks=time/1800)
+    sou_st_n = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHN", stacks=time/1800)
+    sou_st_z = equal_and_split(st=sst, id="NZ."+source+"."+loc+".HHZ", stacks=time/1800)
 
-rec_st_2 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH2", stacks=time/1800)
-rec_st_1 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH1", stacks=time/1800)
-rec_st_z = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HHZ", stacks=time/1800)
-
-
-
-for n in range(len(sou_st_z)):
-
-    signal.detrend(sou_st_z[n],type='linear')
-    window = signal.tukey(len(sou_st_z[n]),alpha=0.05)
-    sou_st_z[n] * window
-    signal.detrend(sou_st_n[n],type='linear')
-    window = signal.tukey(len(sou_st_n[n]),alpha=0.05)
-    sou_st_n[n] * window
-    signal.detrend(sou_st_e[n],type='linear')
-    window = signal.tukey(len(sou_st_e[n]),alpha=0.05)
-    sou_st_e[n] * window
-
-print("%s break")
-print(sou_st_z[0])
-
-for x in range(len(rec_st_z)):
-	
-	signal.detrend(rec_st_z[x],type='linear')
-	window = signal.tukey(len(rec_st_z[x]),alpha=0.05)
-	rec_st_z[x] * window
-	signal.detrend(rec_st_1[x],type='linear')
-	window = signal.tukey(len(rec_st_1[x]),alpha=0.05)
-	rec_st_1[x] * window
-	signal.detrend(rec_st_2[x],type='linear')
-	window = signal.tukey(len(rec_st_2[x]),alpha=0.05)
-	rec_st_2[x] * window
-
-print(rec_st_z[0])
-print(range(len(rec_st_z)))
-
-z_ccf_windows = []
-n_ccf_windows = []
-e_ccf_windows = []
-for i in range(len(rec_st_z)):
-    z_corr = correlate(rec_st_z[i],sou_st_z[i],shift*100)
-    n_corr = correlate(rec_st_1[i],sou_st_z[i],shift*100)
-    e_corr = correlate(rec_st_2[i],sou_st_z[i],shift*100)
-    print("%s zcorr break")
-    print(z_corr)
-    z_ccf_windows.append(z_corr)
-    n_ccf_windows.append(n_corr)
-    e_ccf_windows.append(e_corr)
-    # for a in range(len(z_corr)):
-    #     z_stacked = np.add(z_corr[a],z_corr[a+1]) 
-    #     z_stacked / len(rec_st_z)
-    #     # Czz.append(z_stacked)
-print("%s z stacked break")
-print(z_ccf_windows)
+    rec_st_2 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH2", stacks=time/1800)
+    rec_st_1 = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HH1", stacks=time/1800)
+    rec_st_z = equal_and_split(st=rst, id="NZ."+station+"."+loc+".HHZ", stacks=time/1800)
 
 
 
-zz = np.array(z_ccf_windows, dtype=np.float32)
-nz = np.array(n_ccf_windows, dtype=np.float32)
-ez = np.array(e_ccf_windows, dtype=np.float32)
-z_stacked = zz.sum(axis=0) / len(zz)
-n_stacked = nz.sum(axis=0) / len(nz)
-e_stacked = ez.sum(axis=0) / len(ez)
+    for n in range(len(sou_st_z)):
+
+        signal.detrend(sou_st_z[n],type='linear')
+        window = signal.tukey(len(sou_st_z[n]),alpha=0.05)
+        sou_st_z[n] * window
+        signal.detrend(sou_st_n[n],type='linear')
+        window = signal.tukey(len(sou_st_n[n]),alpha=0.05)
+        sou_st_n[n] * window
+        signal.detrend(sou_st_e[n],type='linear')
+        window = signal.tukey(len(sou_st_e[n]),alpha=0.05)
+        sou_st_e[n] * window
+
+    print("%s break")
+    print(sou_st_z[0])
+
+    for x in range(len(rec_st_z)):
+        signal.detrend(rec_st_z[x],type='linear')
+        window = signal.tukey(len(rec_st_z[x]),alpha=0.05)
+        rec_st_z[x] * window
+        signal.detrend(rec_st_1[x],type='linear')
+        window = signal.tukey(len(rec_st_1[x]),alpha=0.05)
+        rec_st_1[x] * window
+        signal.detrend(rec_st_2[x],type='linear')
+        window = signal.tukey(len(rec_st_2[x]),alpha=0.05)
+        rec_st_2[x] * window
+
+    print(rec_st_z[0])
+    print(range(len(rec_st_z)))
+
+    z_ccf_windows = []
+    n_ccf_windows = []
+    e_ccf_windows = []
+    for i in range(len(rec_st_z)):
+        z_corr = correlate(rec_st_z[i],sou_st_z[i],shift*100)
+        n_corr = correlate(rec_st_1[i],sou_st_z[i],shift*100)
+        e_corr = correlate(rec_st_2[i],sou_st_z[i],shift*100)
+        print("%s zcorr break")
+        print(z_corr)
+        z_ccf_windows.append(z_corr)
+        n_ccf_windows.append(n_corr)
+        e_ccf_windows.append(e_corr)
+        # for a in range(len(z_corr)):
+        #     z_stacked = np.add(z_corr[a],z_corr[a+1]) 
+        #     z_stacked / len(rec_st_z)
+        #     # Czz.append(z_stacked)
+    print("%s z stacked break")
+    print(z_ccf_windows)
 
 
-print(len(zz))
-print(range(len(zz)))
 
-end = timer()
-print(end - start)
+    zz = np.array(z_ccf_windows, dtype=np.float32)
+    nz = np.array(n_ccf_windows, dtype=np.float32)
+    ez = np.array(e_ccf_windows, dtype=np.float32)
+    z_stacked = zz.sum(axis=0) / len(zz)
+    n_stacked = nz.sum(axis=0) / len(nz)
+    e_stacked = ez.sum(axis=0) / len(ez)
 
-plt.plot(z_stacked)
-plt.show()
 
-print(len(z_stacked))
-print(range(len(z_stacked)))
+    print(len(zz))
+    print(range(len(zz)))
+
+    end = timer()
+    print(end - start)
+
+    plt.plot(z_stacked)
+    plt.show()
+
+    print(len(z_stacked))
+    print(range(len(z_stacked)))
 
 
 
