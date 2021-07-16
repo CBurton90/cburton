@@ -6,6 +6,8 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy.stats import circmean,circstd
 from scipy.interpolate import interp1d
+import matplotlib
+matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 
@@ -34,14 +36,14 @@ def fold_ccfs(zz,nz,ez):
 
 	# Order ccf streams
 	st_folded.sort() 
-	ZZ = st_folded.select(id="NZ.RPZ.10.HHZ")
-	RZ = st_folded.select(id="NZ.RPZ.10.HH1")
-	TZ = st_folded.select(id="NZ.RPZ.10.HH2")
+	ZZ = st_folded.select(id="NZ.URZ.10.HHZ")
+	RZ = st_folded.select(id="NZ.URZ.10.HH1")
+	TZ = st_folded.select(id="NZ.URZ.10.HH2")
 
 	return ZZ,RZ,TZ
 
 	
-ZZ,RZ,TZ = fold_ccfs(zz='RPZ_WVZ_ZZ.mseed',nz='RPZ_WVZ_1Z.mseed',ez='RPZ_WVZ_2Z.mseed')
+ZZ,RZ,TZ = fold_ccfs(zz='URZ_TLZ_ZZ.mseed',nz='URZ_TLZ_1Z.mseed',ez='URZ_TLZ_2Z.mseed')
 
 print(ZZ)
 
@@ -50,7 +52,7 @@ print(ZZ)
 # axs[1].plot(RZ[0].data)
 # axs[2].plot(TZ[0].data)
 
-# st2 = read('RPZ_WVZ_ZZ.mseed')
+# st2 = read('URZ_TLZ_ZZ.mseed')
 # plt.plot(st2[0].data)
 # plt.show()
 
@@ -83,12 +85,12 @@ print(degrees)
 print(corr_coeff)
 
 
-RPZ_lat = -43.7146
-RPZ_long = 171.0539
-WVZ_lat = -43.0743
-WVZ_long = 170.7368
+URZ_lat = -38.2592
+URZ_long = 177.1109
+TLZ_lat = -38.3294
+TLZ_long = 175.538
 
-back_azi = gps2dist_azimuth(RPZ_lat, RPZ_long, WVZ_lat, WVZ_long)
+back_azi = gps2dist_azimuth(URZ_lat, URZ_long, TLZ_lat, TLZ_long)
 print(back_azi)
 source_azi = back_azi[1]
 
@@ -130,9 +132,9 @@ m = Basemap(llcrnrlon=170.,llcrnrlat=-40.,urcrnrlon=180.,urcrnrlat=-35.,\
             lat_0=-37.5,lon_0=175.,lat_ts=None)
 
 # nylat, nylon are lat/lon of New York
-nylat = RPZ_lat; nylon = RPZ_long
+nylat = URZ_lat; nylon = URZ_long
 # lonlat, lonlon are lat/lon of London.
-lonlat = WVZ_lat; lonlon = WVZ_long
+lonlat = TLZ_lat; lonlon = TLZ_long
 # draw great circle route between NY and London
 m.drawgreatcircle(nylon,nylat,lonlon,lonlat,linewidth=2,color='b')
 m.drawcoastlines()
@@ -141,7 +143,7 @@ m.fillcontinents()
 m.drawparallels(np.arange(-40,-35,1),labels=[1,1,0,1])
 # draw meridians
 m.drawmeridians(np.arange(-180,180,2.5),labels=[1,1,0,1])
-ax1.set_title('RPZ to WVZ', pad=10)
+ax1.set_title('URZ to TLZ', pad=10)
 
 
 
@@ -228,5 +230,5 @@ ax6.set_ylabel('Srz')
 
 # fig.tight_layout()
 plt.show()
-# plt.savefig('T120-BH1_orient_RPZ_WVZ.png', format='PNG', dpi=400)
+#plt.savefig('T120-BH1_orient_URZ_TLZ.png', format='PNG', dpi=400)
 

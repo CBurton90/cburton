@@ -9,10 +9,13 @@ from obspy.clients.fdsn import Client
 from obspy.signal.cross_correlation import correlate
 # from multiprocessing import Pool, cpu_count, get_context, set_start_method
 import multiprocessing
+from multiprocessing import cpu_count
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from timeit import default_timer as timer
+
+
 
 def get_and_remove_response(station, channel, location, output, t1, duration):
     client = Client("http://service.geonet.org.nz")
@@ -94,131 +97,56 @@ def check_length(stream):
 
 start = timer()
 
+t1 = UTCDateTime(2018, 6, 4, 6, 30, 0)
 
-t1 = UTCDateTime(2021, 5, 29, 6, 30, 0)
 duration = 4*24*60*60
-time = 15.5*24*60*60
+time = 23.5*24*60*60
 
-# duration = 4.3*24*60*60
-# time = 4*24*60*60
+# duration = 60*60
+# time = 3*60*60
 
-stime = UTCDateTime("2021-05-29T06:45:00")
+stime = UTCDateTime("2018-06-04T06:45:00")
 
 shift = 120
 
-# print(Pool(cpu_count())
-
-args_st = [('URZ', 'HH*', '10', 'VEL', t1, duration),
-('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
-
-args_rt = [('PUZ', 'HH*', '10', 'VEL', t1, duration),
-('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration), 
-('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
-
 args = [('URZ', 'HH*', '10', 'VEL', t1, duration),
-('PUZ', 'HH*', '10', 'VEL', t1, duration),
-('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)]
+    ('KNZ', 'HH*', '10', 'VEL', t1, duration),
+    ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+    ('KNZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+    ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+    ('KNZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+    ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+    ('KNZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+    ('URZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
+    ('KNZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
+    ('URZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration),
+    ('KNZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration)]
 
 
-if __name__ == "__main__":
-    pool = multiprocessing.get_context('spawn').Pool(processes=2)
-    rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.starmap(get_and_remove_response, args)
+
+
+
+def main():
+    # pool = multiprocessing.Pool(processes=2, maxtasksperchild=1)
+    pool = multiprocessing.get_context('spawn').Pool(processes=12)
+    # pool = multiprocessing.Pool(processes=4)
+    # rst,sst,rst2,sst2,rst3,sst3,rst4,sst4,rst5,sst5,rst6,sst6,rst7,sst7,rst8,sst8,rst9,sst9,rst10,sst10 = pool.starmap(
+    #     get_and_remove_response, args, chunksize=1)
+    rst,sst,rst2,sst2,rst3,sst3,rst4,sst4,rst5,sst5,rst6,sst6 = pool.starmap(
+        get_and_remove_response, args)
     pool.close()
-
-# if __name__ == "__main__":
-#     pool = Pool(cpu_count())
-#     rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
-        # ('URZ', 'HH*', '10', 'VEL', t1, duration),
-        # ('PUZ', 'HH*', '10', 'VEL', t1, duration),
-        # ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-        # ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-        # ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-        # ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-        # ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-        # ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
+    pool.join()
 
 
-
-
-# set_start_method("spawn")
-# if __name__ == "__main__":
-
-#     pool = get_context('spawn').Pool(cpu_count())
-
-#     rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
-#         ('URZ', 'HH*', '10', 'VEL', t1, duration),
-#         ('PUZ', 'HH*', '10', 'VEL', t1, duration),
-#         ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-#         ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-#         ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-#         ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-#         ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-#         ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
-#     pool.close()
-#     pool.join()
-
-# pool = get_context('spawn').Pool(cpu_count())
-
-# rst,sst,rst2,sst2,rst3,sst3,rst4,sst4 = pool.map(multi_run_wrapper,[
-#     ('URZ', 'HH*', '10', 'VEL', t1, duration),
-#     ('PUZ', 'HH*', '10', 'VEL', t1, duration),
-#     ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-#     ('PUZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-#     ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-#     ('PUZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-#     ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-#     ('PUZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration)])
-# pool.close()
-# pool.join()
-
-
-
-
-# rst = Stream()
-
-# if __name__ == "__main__":
-#     pool = get_context('spawn').Pool()
-   
-#     for n in range(len(args_st)):
-#         rt = pool.apply_async(multi_run_wrapper, args_st[n])
-#         rst += rt[n]
-#         # rst += st
-
-#     sst = Stream()
-#     for n in range(len(args_rt)):
-#         stt = pool.apply_async(multi_run_wrapper, args_rt[n])
-#         # sst += rt[n]
-
-#     pool.close()
-#     pool.join()
-
-
-    
-    
-
-
-
-    rst += rst2 +rst3 + rst4
-    sst += sst2 +sst3 + sst4
+    rst += rst2 +rst3 + rst4 + rst5 + rst6 
+    sst += sst2 +sst3 + sst4 + sst5 + sst6 
 
 
     rst.merge(fill_value='interpolate')
     sst.merge(fill_value='interpolate')
 
-# rst = get_and_remove_response(station='URZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
-# sst = get_and_remove_response(station='PUZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
-
 
     rst = rst.trim(starttime=stime, endtime=stime + time)
-
 
     sst = sst.trim(starttime=stime, endtime=stime + time)   
 
@@ -306,44 +234,39 @@ if __name__ == "__main__":
     end = timer()
     print(end - start)
 
-    plt.plot(z_stacked)
-    plt.show()
+    # plt.plot(z_stacked)
+    # plt.show()
 
     print(len(z_stacked))
     print(range(len(z_stacked)))
 
+    # Convert to NumPy character array
+    data = np.array(z_stacked, dtype='|S1')
 
+    # Fill header attributes
+    stats = {'network': 'NZ', 'station': station, 'location': loc,
+             'channel': 'HHZ', 'npts': len(z_stacked), 'sampling_rate': 100,
+             'mseed': {'dataquality': 'D'}}
+    stats2 = {'network': 'NZ', 'station': station, 'location': loc,
+             'channel': 'HH1', 'npts': len(z_stacked), 'sampling_rate': 100,
+             'mseed': {'dataquality': 'D'}}
+    stats3 = {'network': 'NZ', 'station': station, 'location': loc,
+             'channel': 'HH2', 'npts': len(z_stacked), 'sampling_rate': 100,
+             'mseed': {'dataquality': 'D'}}
+    # set current time
+    stats['starttime'] = stime
+    stats2['starttime'] = stime
+    stats3['starttime'] = stime
+    st = Stream([Trace(data=z_stacked, header=stats)])
+    st2 = Stream([Trace(data=n_stacked, header=stats2)])
+    st3 = Stream([Trace(data=e_stacked, header=stats3)])
+    # write as ASCII file (encoding=0)
+    st.write(station+"_"+source+"_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+    st2.write(station+"_"+source+"_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
+    st3.write(station+"_"+source+"_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
 
+if __name__ == "__main__":
 
+    multiprocessing.set_start_method("spawn")
 
-# Convert to NumPy character array
-# data = np.array(z_stacked, dtype='|S1')
-
-# # Fill header attributes
-# stats = {'network': 'NZ', 'station': station, 'location': loc,
-#          'channel': 'HHZ', 'npts': len(z_stacked), 'sampling_rate': 100,
-#          'mseed': {'dataquality': 'D'}}
-# stats2 = {'network': 'NZ', 'station': station, 'location': loc,
-#          'channel': 'HH1', 'npts': len(z_stacked), 'sampling_rate': 100,
-#          'mseed': {'dataquality': 'D'}}
-# stats3 = {'network': 'NZ', 'station': station, 'location': loc,
-#          'channel': 'HH2', 'npts': len(z_stacked), 'sampling_rate': 100,
-#          'mseed': {'dataquality': 'D'}}
-# # set current time
-# stats['starttime'] = stime
-# stats2['starttime'] = stime
-# stats3['starttime'] = stime
-# st = Stream([Trace(data=z_stacked, header=stats)])
-# st2 = Stream([Trace(data=n_stacked, header=stats2)])
-# st3 = Stream([Trace(data=e_stacked, header=stats3)])
-# # write as ASCII file (encoding=0)
-# st.write(station+"_"+source+"_ZZ.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-# st2.write(station+"_"+source+"_1Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-# st3.write(station+"_"+source+"_2Z.mseed", format='MSEED', encoding="FLOAT32", reclen=512)
-
-
-
-
-
-
-
+    main()
