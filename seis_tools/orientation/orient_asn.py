@@ -242,6 +242,6 @@ ax6.set_ylabel('Srz')
 
 
 # fig.tight_layout()
-plt.show()
-# plt.savefig('asn_orient_'+site_A+'_'+site_B+'.png', format='PNG', dpi=400)
+# plt.show()
+plt.savefig('asn_orient_'+str(site_A)+'_'+str(site_B)+'_'+str(correction)+'.png', format='PNG', dpi=400)
 
