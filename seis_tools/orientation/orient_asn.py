@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+import argparse
 from obspy.core.inventory.inventory import read_inventory
 from obspy import read
 from obspy.geodetics.base import gps2dist_azimuth
@@ -36,16 +39,43 @@ def fold_ccfs(zz,nz,ez):
 
 	# Order ccf streams
 	st_folded.sort() 
-	ZZ = st_folded.select(id="NZ.URZ.10.HHZ")
-	RZ = st_folded.select(id="NZ.URZ.10.HH1")
-	TZ = st_folded.select(id="NZ.URZ.10.HH2")
+	ZZ = st_folded.select(id='NZ.'+site_A+'.10.HHZ')
+	RZ = st_folded.select(id='NZ.'+site_A+'.10.HH1')
+	TZ = st_folded.select(id='NZ.'+site_A+'.10.HH2')
 
 	return ZZ,RZ,TZ
 
 	
-ZZ,RZ,TZ = fold_ccfs(zz='URZ_TLZ_ZZ.mseed',nz='URZ_TLZ_1Z.mseed',ez='URZ_TLZ_2Z.mseed')
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--site_ref', type=str, required=True)
+parser.add_argument('--ref_lat', type=float, required=True)
+parser.add_argument('--ref_long', type=float, required=True)
+
+parser.add_argument('--site_source', type=str, required=True)
+parser.add_argument('--source_lat', type=float, required=True)
+parser.add_argument('--source_long', type=float, required=True)
+
+args = parser.parse_args()
+
+site_A = args.site_ref
+lat_A = args.ref_lat
+long_A = args.ref_long
+site_B = args.site_source
+lat_B = args.source_lat
+long_B = args.source_long
+
+path_zz = '/home/conradb/git/cburton/seis_tools/orientation/final_impulses/'+site_A+'_'+site_B+'_ZZ.mseed'
+path_nz = '/home/conradb/git/cburton/seis_tools/orientation/final_impulses/'+site_A+'_'+site_B+'_1Z.mseed'
+path_ez = '/home/conradb/git/cburton/seis_tools/orientation/final_impulses/'+site_A+'_'+site_B+'_2Z.mseed'
+
+
+ZZ,RZ,TZ = fold_ccfs(zz=path_zz,nz=path_nz,ez=path_ez)
 
 print(ZZ)
+print(RZ)
+print(TZ)
 
 # fig, axs = plt.subplots(3)
 # axs[0].plot(ZZ[0].data)
@@ -57,64 +87,51 @@ print(ZZ)
 # plt.show()
 
 
-# we are going to compare the RT with a 90 degree
-                # shifted ZZ
+# Comparing the unknown radial comp with a 90 degree shifted ZZ in 1 degree steps
 
 
 ZZ_hil = np.imag(hilbert(ZZ[0].data))
 Szz = np.correlate(ZZ_hil,ZZ_hil)
 
-# rotating ANTI-CLOCKWISE, correlating with ZZ_hil:
+# rotating anti-clockwise and correlating with ZZ_hil:
+
 maxSrz= []
+
 #coherences=[]
+# build values from 0 to 2pi in 1/360 increments
 thetas = np.linspace(0,2*np.pi,360)
 for i_,theta in enumerate(thetas):
 	RZ_rot =  np.cos(theta)*RZ[0].data - np.sin(theta)*TZ[0].data
 	TZ_rot = np.sin(theta)*RZ[0].data + np.cos(theta)*TZ[0].data
 	Srz = np.correlate(RZ_rot, ZZ_hil)
-	# Szz = np.correlate(ZZ_hil, ZZ_hil)
+	Szz = np.correlate(ZZ_hil, ZZ_hil)
 	maxSrz.append(max(Srz)/max(Szz))
 
 # find the angle with the maximum correlation:
 maxmaxSrz= max(maxSrz)
+# index of list with maximum correlation
 rotangle_index = maxSrz.index(maxmaxSrz)
+# value in radians
 rotangle = thetas[rotangle_index]
+# value in degrees
 degrees = int(rotangle*180/np.pi)
+# correlation coefficient value
 corr_coeff = maxmaxSrz
 print(degrees)
 print(corr_coeff)
 
 
-URZ_lat = -38.2592
-URZ_long = 177.1109
-TLZ_lat = -38.3294
-TLZ_long = 175.538
-
-back_azi = gps2dist_azimuth(URZ_lat, URZ_long, TLZ_lat, TLZ_long)
+back_azi = gps2dist_azimuth(lat_A, long_A, lat_B, long_B)
 print(back_azi)
 source_azi = back_azi[1]
-
 print(source_azi)
 
 #anti-clockwise-hh1-rot
 correction = ((source_azi + degrees) + 360) % 360
 print(correction)
 
-# plt.plot(maxSrz)
-# plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
+# plotting
 
 fig = plt.figure(figsize=(25,20))
 fig.suptitle('Ambient Seismic Noise Orientation', fontsize=18)
@@ -126,24 +143,20 @@ plt.subplots_adjust(wspace= 0.3, hspace= 0.2)
 
 ax1 = fig.add_subplot(2, 2, 1)
 
-m = Basemap(llcrnrlon=170.,llcrnrlat=-40.,urcrnrlon=180.,urcrnrlat=-35.,\
+m = Basemap(llcrnrlon=long_A-5,llcrnrlat=lat_A-2.5,urcrnrlon=long_A+5.,urcrnrlat=lat_A+2.5,\
             rsphere=(6378137.00,6356752.3142),\
             resolution='l',projection='merc',\
-            lat_0=-37.5,lon_0=175.,lat_ts=None)
+            lat_0=lat_A,lon_0=long_A,lat_ts=None)
 
-# nylat, nylon are lat/lon of New York
-nylat = URZ_lat; nylon = URZ_long
-# lonlat, lonlon are lat/lon of London.
-lonlat = TLZ_lat; lonlon = TLZ_long
-# draw great circle route between NY and London
-m.drawgreatcircle(nylon,nylat,lonlon,lonlat,linewidth=2,color='b')
+# draw great circle route between refrence and source sites
+m.drawgreatcircle(long_A,lat_A,long_B,lat_B,linewidth=2,color='b')
 m.drawcoastlines()
 m.fillcontinents()
 # draw parallels
-m.drawparallels(np.arange(-40,-35,1),labels=[1,1,0,1])
+m.drawparallels(np.arange(-90,0,1),labels=[1,1,0,1])
 # draw meridians
 m.drawmeridians(np.arange(-180,180,2.5),labels=[1,1,0,1])
-ax1.set_title('URZ to TLZ', pad=10)
+ax1.set_title(site_A+' to '+site_B, pad=10)
 
 
 
@@ -230,5 +243,5 @@ ax6.set_ylabel('Srz')
 
 # fig.tight_layout()
 plt.show()
-#plt.savefig('T120-BH1_orient_URZ_TLZ.png', format='PNG', dpi=400)
+# plt.savefig('asn_orient_'+site_A+'_'+site_B+'.png', format='PNG', dpi=400)
 
