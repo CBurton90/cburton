@@ -19,7 +19,7 @@ from mpl_toolkits.basemap import Basemap
 
 
 def get_and_remove_response(station, channel, location, output, t1, duration):
-    client = Client("http://service.geonet.org.nz")
+    client = Client("http://service-nrt.geonet.org.nz")
     st = client.get_waveforms(
         network="NZ", station=station, location=location,
         channel=channel, starttime=t1, endtime=t1 + duration)
@@ -317,8 +317,8 @@ ax6.set_ylabel('Normalized Corr Coeff')
 
 
 # fig.tight_layout()
-# plt.show()
-plt.savefig('Borehole_orient_'+site+'_'+ev_code+'_'+str(correction)+'.png', format='PNG', dpi=400)
+plt.show()
+# plt.savefig('Borehole_orient_'+site+'_'+ev_code+'_'+str(correction)+'.png', format='PNG', dpi=400)
     
 
 

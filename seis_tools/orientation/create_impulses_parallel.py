@@ -97,7 +97,7 @@ def check_length(stream):
 
 start = timer()
 
-t1 = UTCDateTime(2018, 6, 4, 6, 30, 0)
+t1 = UTCDateTime(2021, 2, 1, 6, 30, 0)
 
 duration = 4*24*60*60
 time = 23.5*24*60*60
@@ -105,22 +105,22 @@ time = 23.5*24*60*60
 # duration = 60*60
 # time = 3*60*60
 
-stime = UTCDateTime("2018-06-04T06:45:00")
+stime = UTCDateTime("2021-02-01T06:45:00")
 
 shift = 120
 
-args = [('URZ', 'HH*', '10', 'VEL', t1, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1, duration),
-    ('URZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
-    ('URZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
-    ('URZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
-    ('URZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
-    ('URZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration),
-    ('KNZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration)]
+args = [('COVZ', 'HH*', '10', 'VEL', t1, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1, duration),
+    ('COVZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1+4*24*60*60, duration),
+    ('COVZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1+8*24*60*60, duration),
+    ('COVZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1+12*24*60*60, duration),
+    ('COVZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1+16*24*60*60, duration),
+    ('COVZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration),
+    ('VRZ', 'HH*', '10', 'VEL', t1+20*24*60*60, duration)]
 
 
 
