@@ -24,7 +24,7 @@ def get_and_remove_response(station, channel, location, output, t1, duration=60)
     return tr
 
 # pre_filt = [0.01,1,25,30]
-tr = get_and_remove_response(station="RIZ", channel="HN*", location="20", output="ACC", t1=UTCDateTime(2021, 3, 4, 17, 41, 30))
+tr = get_and_remove_response(station="WHSZ", channel="HH*", location="10", output="VEL", t1=UTCDateTime(2021, 11, 17, 00, 41, 30))
 # tr += get_and_remove_response(station="RIZ", channel="H**", location="10", output="ACC", t1=UTCDateTime(2021, 3, 4, 17, 41, 30))
 
 tr.plot(equal_scale=False)

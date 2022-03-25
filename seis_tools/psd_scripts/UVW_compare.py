@@ -24,10 +24,10 @@ def rotate(data1, data2, data3):
     st2=Stream(traces=[rotatedZ, rotatedN, rotatedE])
     return st2
 
-client = Client("GEONET" , timeout=20)
+client = Client("http://service.geonet.org.nz" , timeout=20)
 #client = Client()
-stime = UTCDateTime('2020-200T00:00:00')
-etime = UTCDateTime('2020-201T00:00:00')
+stime = UTCDateTime('2021-314T00:00:00')
+etime = UTCDateTime('2021-315T00:00:00')
 st = client.get_waveforms("NZ", "CTZ", "10",
                            "LH*", stime, etime, attach_response = True)
 

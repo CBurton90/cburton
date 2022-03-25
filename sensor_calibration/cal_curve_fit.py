@@ -26,26 +26,32 @@ from obspy import read
 
 # Local
 
-starttime = UTCDateTime("2021-10-20T00:55:30")
-endtime = UTCDateTime("2021-10-20T00:56:30")
+# start and end of the sine calibration trimmed to 1 minute (out of 5)
 
-st = read('/home/conradb/git/cburton/sensor_calibration/Centaur_TH120_test_data/TEST_centaur-6_7933_20211020_005239.seed')
-cal = read('/home/conradb/git/cburton/sensor_calibration/Centaur_TH120_test_data/TEST_CAL.mseed')
+starttime = UTCDateTime("2021-11-03T02:30:00")
+endtime = UTCDateTime("2021-11-03T02:31:00")
+
+# read in the calibration outputs for the 3ch's and the sine calibration signal
+
+st = read('/home/conradb/git/cburton/sensor_calibration/2021_Calibs/URZ_centaur-6_8003_20211103_022718.seed')
+cal = read('/home/conradb/git/cburton/sensor_calibration/2021_Calibs/20211103_URZ_sine_CAL.seed')
 st.trim(starttime=starttime, endtime=endtime)
 cal.trim(starttime=starttime, endtime=endtime)
 print(st)
 print(cal)
 
+# select the components in individual streams
+
 hhz = st.select(component="Z")
-hh1 = st.select(component="N")
-hh2 = st.select(component='E')
+hh1 = st.select(component="1")
+hh2 = st.select(component='2')
+
+# convert counts to volts assuming 40Vpp and 24 bits
 
 cal_sig = cal.select(component="A")[0].data * (40/(2**24))
 hhz_v = st.select(component="Z")[0].data * (40/(2**24)) 
-hh1_v = st.select(component="N")[0].data * (40/(2**24))
-hh2_v = st.select(component="E")[0].data * (40/(2**24))
-
-
+hh1_v = st.select(component="1")[0].data * (40/(2**24))
+hh2_v = st.select(component="2")[0].data * (40/(2**24))
 
 
 Xc = np.linspace(0,(len(cal_sig)-1)/100,len(cal_sig))
@@ -68,11 +74,11 @@ h2 = [hh2_v.max()/2.0, 2.*np.pi, 0.0, 0.0]
 copt,ccov = curve_fit(calc_sine,Xc,cal_sig,p0=hc)
 print('cal sig in V is ', copt[0])
 zopt,zcov = curve_fit(calc_sine,Xc,hhz_v,p0=hz)
-print('Z sig in V is ', zopt[0])
+print('HHZ sig in V is ', zopt[0])
 opt1,cov1 = curve_fit(calc_sine,Xc,hh1_v,p0=h1)
-print('1 or N sig in V is ', opt1[0])
+print('HHN/HH1 sig in V is ', opt1[0])
 opt2,cov2 = curve_fit(calc_sine,Xc,hh2_v,p0=h2)
-print('2 or E sig in V is ', opt1[0])
+print('HHE/HH2 sig in V is ', opt1[0])
 
 # Acccuracy of our fitted function
 
@@ -97,21 +103,36 @@ print (Accuracy_cal)
 
 
 
-# NMX Horizon
+# Nanometrics Horizon 120s Sensitivity 
+
+# http://www.ipgp.fr/~arnaudl/NanoCD/documentation/3rdParty/Calibration%20Rev5.pdf
+
+# using the equation (3) under 5.3 Deriving the Transfer Function
+
+# where Hs = (2 * pi * fi *Km * K * A02) / A01
+
+# Hs = Sensor amplitude response (V/m/s)
+# fi = Calibration freqeuncy point (I am using a 1Hz sine wave)
+# Km = Calibration coil motor constant (I am assuming the Horizon's value is 100V/m/s^2, needs clarification)
+# K = Voltage divider gain (I am using 1)
+# A02 = Digitized calibration sensor output signal (should be in counts but I am using volts, it's a ratio so shouldn't matter?)
+# A01 = Digitized calibration loop back signal (should be in counts but I am using volts, it's a ratio so shouldn't matter?)
 
 rz =  (zopt[0] * 2.0 * np.pi * 1.0 * 100.0 / copt[0])
 print(rz)
 
+
 r1 = (opt1[0] * 2.0 * np.pi * 1.0 * 100.0 / copt[0])
 print(r1)
+
+# as cal input sensitivity at f0 = -0.01023 (m/s^2)/V in Horizon manual trying 1/0.01023 to give V/m/s^2 
 
 r2 = (opt2[0] * 2.0 * np.pi * 1.0 * (1/0.01023) / copt[0])
 print(r2)
 
 
 
-
-
+# ncalib for the ctbto
 
 calib_hhz = 1000 / (2 * np.pi * rz * 1.6777216)
 print(calib_hhz)
@@ -130,30 +151,51 @@ line2 = Line2D(range(10), range(10), marker='o',color="firebrick")
 amp_cal = round(copt[0], 3)
 sens_z = round(rz, 2)
 sens_1 = round(r1, 2)
+sens_2 = round(r2, 2)
 
 line_label = "Amplitude: " + str(amp_cal) + "V"
 z_label = "Sensitivity: " + str(sens_z) + "V/m/s" 
 label_1 = "Sensitivity: " + str(sens_1) + "V/m/s"
+label_2 = "Sensitivity: " + str(sens_2) + "V/m/s"
 
-fig, ax = plt.subplots(3,1,figsize=(20,10))
-fig.suptitle('Calibration Sine Regression RPZ (10/11/2020)', fontsize=25, fontweight='bold')
+fig, ax = plt.subplots(4,1,figsize=(20,10))
+fig.suptitle('Calibration Sine Regression TEST (10/11/2020)', fontsize=25, fontweight='bold')
+
+# plot calibration signal
+
 ax[0].set_title(cal[0].stats.station + "_" + cal[0].stats.location + "_" + cal[0].stats.channel + "(Calibration Signal)", fontsize=17)
 ax[0].set_ylabel('Volts', fontsize=17)
 ax[0].scatter(Xc,cal_sig,color="darkblue")
 ax[0].plot(Xc,calc_sine(Xc,*copt),c="firebrick")
 ax[0].legend((line1,line2),('Data','Sine Function'),numpoints=1, loc=2, bbox_to_anchor=(1.01,1))
 ax[0].text(1.01, 0.6, line_label, transform=ax[0].transAxes)
+
+# plot vertical comp
+
 ax[1].set_title(hhz[0].stats.station + "_" + hhz[0].stats.location + "_" + hhz[0].stats.channel, fontsize=17)
 ax[1].set_ylabel('Volts', fontsize=17)
 ax[1].scatter(Xc,hhz_v,color="darkblue")
 ax[1].plot(Xc,calc_sine(Xc,*zopt),c="firebrick")
 ax[1].text(1.01, 0.6, z_label, transform=ax[1].transAxes)
+
+# plot hh1/hhn comp
+
 ax[2].set_title(hh1[0].stats.station + "_" + hh1[0].stats.location + "_" + hh1[0].stats.channel, fontsize=17)
 ax[2].set_ylabel('Volts', fontsize=17)
 ax[2].set_xlabel('Time (s)', fontsize=17)
 ax[2].scatter(Xc,hh1_v,color="darkblue")
 ax[2].plot(Xc,calc_sine(Xc,*opt1),c="firebrick")
 ax[2].text(1.01, 0.6, label_1, transform=ax[2].transAxes)
+
+# plot hh2/hhe comp
+
+ax[3].set_title(hh2[0].stats.station + "_" + hh2[0].stats.location + "_" + hh2[0].stats.channel, fontsize=17)
+ax[3].set_ylabel('Volts', fontsize=17)
+ax[3].set_xlabel('Time (s)', fontsize=17)
+ax[3].scatter(Xc,hh2_v,color="darkblue")
+ax[3].plot(Xc,calc_sine(Xc,*opt2),c="firebrick")
+ax[3].text(1.01, 0.6, label_2, transform=ax[3].transAxes)
+
 
 
 plt.show()

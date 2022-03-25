@@ -19,26 +19,27 @@ def get_and_remove_response(station, channel, location, output, t1, duration):
     # print(st)
     for n in range(len(st)):
         
-        # inv = client.get_stations(
-        #     network=st[n].stats.network, station=st[n].stats.station, 
-        #     location=st[n].stats.location, channel=st[n].stats.channel, 
-        #     level="response", startbefore=t1, endafter=t1 + duration)
-        # st[n].detrend('linear')
-        # st[n].taper(max_percentage=0.05, type='cosine')
-        st[n].filter('bandpass', freqmin=0.1, freqmax=0.2, zerophase=True)
-        # st[n].remove_response(output=output, pre_filt=False, plot=False,
-        #                water_level=60, inventory=inv)
+        inv = client.get_stations(
+            network=st[n].stats.network, station=st[n].stats.station, 
+            location=st[n].stats.location, channel=st[n].stats.channel, 
+            level="response", startbefore=t1, endafter=t1 + duration)
+        st[n].detrend('linear')
+        st[n].taper(max_percentage=0.05, type='cosine')
+        pre_filt = (0.05, 0.1, 0.2, 0.4)
+        # st[n].filter('bandpass', freqmin=0.1, freqmax=0.2, zerophase=True)
+        st[n].remove_response(output=output, pre_filt=pre_filt, plot=False,
+                       water_level=60, inventory=inv)
         tr += st[n]
 
     return tr
 
-t1 = UTCDateTime("2021-06-24T05:31:00")
-duration = 240
+t1 = UTCDateTime("2021-11-20T12:00:00")
+duration = 60*10
 
-st = get_and_remove_response(station='RPZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
+st = get_and_remove_response(station='WHSZ', channel='HH*', location='11', output='VEL', t1=t1, duration=duration)
 st = st.trim(starttime=t1+10, endtime=t1 + duration -10)
 
-st_2 = get_and_remove_response(station='RPZ', channel='HH*', location='11', output='VEL', t1=t1, duration=duration)
+st_2 = get_and_remove_response(station='WHSZ', channel='HH*', location='10', output='VEL', t1=t1, duration=duration)
 st_2 = st_2.trim(starttime=t1+10, endtime=t1 + duration -10)
 
 
@@ -55,9 +56,9 @@ maxSrz= []
 #coherences=[]
 thetas = np.linspace(0,2*np.pi,360)
 for i_,theta in enumerate(thetas):
-	Rad_rot =  np.cos(theta)*st.select(id="NZ.RPZ.10.HH1") - np.sin(theta)*st.select(id="NZ.RPZ.10.HH2")
-	Trv_rot = np.sin(theta)*st.select(id="NZ.RPZ.10.HH1") + np.cos(theta)*st.select(id="NZ.RPZ.10.HH2")
-	N_surface = st_2.select(id="NZ.RPZ.11.HHN")
+	Rad_rot =  np.cos(theta)*st.select(id="NZ.WHSZ.11.HH1") - np.sin(theta)*st.select(id="NZ.WHSZ.11.HH2")
+	Trv_rot = np.sin(theta)*st.select(id="NZ.WHSZ.11.HH1") + np.cos(theta)*st.select(id="NZ.WHSZ.11.HH2")
+	N_surface = st_2.select(id="NZ.WHSZ.10.HHN")
 	# Ncorr = np.correlate(Rad_rot[0].data, N_surface[0].data)
 	Ncorr = correlate(Rad_rot[0].data, N_surface[0].data, 0)
 	# Snn = np.correlate(N_surface[0].data, N_surface[0].data)
@@ -83,12 +84,12 @@ print(corr_coeff)
 
 
 
-Final =  np.cos(rotangle)*st.select(id="NZ.RPZ.10.HH1") - np.sin(rotangle)*st.select(id="NZ.RPZ.10.HH2")
+Final =  np.cos(rotangle)*st.select(id="NZ.WHSZ.11.HH1") - np.sin(rotangle)*st.select(id="NZ.WHSZ.11.HH2")
 
 fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex=False, figsize=(15,15))
-fig.suptitle('T120-BH1 Orientation RPZ', fontsize=18)
+fig.suptitle('TC120-PH2 Orientation WHSZ', fontsize=18)
 
-tr_1 = st.select(id="NZ.RPZ.10.HH1")
+tr_1 = st.select(id="NZ.WHSZ.11.HH1")
 t = tr_1[0].times()
 
 
